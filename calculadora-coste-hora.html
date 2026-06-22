@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calcula tu coste por hora · Maldito Margen</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  @import url('https://api.fontshare.com/v2/css?f[]=author@400,500,600,700,800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* Paleta Maldito Margen */
+    --lima:       #c5d147;   /* verde lima — acento principal */
+    --naranja:    #e36c47;   /* naranja — acción, CTA */
+    --morado:     #9275a8;   /* morado — secciones de tiempo/gastos */
+    --amarillo:   #dfdf57;   /* amarillo — amortización */
+    --lima-soft:  #f0f4c3;
+    --naranja-soft: #fce8e1;
+    --morado-soft:  #ede9f4;
+    --amarillo-soft:#fafac2;
+    --equipo:     #2E9E8F;
+    --equipo-soft:#DDF1EE;
+    /* Neutros */
+    --ink:    #1a1a1a;
+    --paper:  #f9f9f6;
+    --card:   #ffffff;
+    --line:   #e8e8e2;
+    --muted:  #888880;
+    --soft:   #4a4a42;
+    /* Tipografías */
+    --f-display: 'Author', 'Plus Jakarta Sans', sans-serif;
+    --f-body:    'Plus Jakarta Sans', system-ui, sans-serif;
+    --f-mono:    'Courier New', monospace;
+  }
+
+  html, body {
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: clamp(16px,4vw,48px); }
+
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .eyebrow {
+    font-family: var(--f-mono);
+    text-transform: uppercase;
+    letter-spacing: .2em;
+    font-size: 11px;
+    color: var(--naranja);
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-size: clamp(34px,5.5vw,62px);
+    font-weight: 800;
+    line-height: .96;
+    letter-spacing: -.02em;
+    margin-bottom: 18px;
+  }
+  h1 em { font-style: normal; color: var(--naranja); }
+  .lede {
+    max-width: 48ch;
+    color: var(--soft);
+    font-size: clamp(15px,1.6vw,17px);
+    line-height: 1.55;
+    margin-bottom: 38px;
+  }
+
+  /* ── Layout ── */
+  .grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  @media(min-width:900px){ .grid { grid-template-columns: 1.15fr .85fr; align-items: start; } }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: clamp(18px,3vw,28px);
+    margin-bottom: 18px;
+  }
+  .card:last-child { margin-bottom: 0; }
+
+  .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .ic {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--naranja-soft); color: var(--naranja);
+    display: grid; place-items: center; flex: none; font-size: 18px;
+  }
+  .ic.g { background: var(--morado-soft);   color: var(--morado); }
+  .ic.a { background: var(--amarillo-soft); color: #a0a010; }
+  .ic.e { background: var(--equipo-soft);   color: var(--equipo); }
+
+  .sec-head h2 {
+    font-family: var(--f-display);
+    font-size: 18px; font-weight: 700; letter-spacing: -.01em;
+  }
+  .sec-head small { font-size: 12.5px; color: var(--muted); display: block; margin-top: 1px; }
+
+  /* ── Formulario ── */
+  label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  label small { color: var(--muted); font-weight: 400; }
+
+  input[type=number], input[type=text], input[type=email], select {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; font-size: 14px; font-family: var(--f-body);
+    background: #fff; color: var(--ink); appearance: none;
+    transition: border-color .15s;
+  }
+  input[type=number] { font-family: var(--f-mono); }
+  input:focus, select:focus {
+    outline: none; border-color: var(--lima); box-shadow: 0 0 0 3px rgba(197,209,71,.18);
+  }
+
+  .field { margin-bottom: 14px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .hint { font-family: var(--f-mono); font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .hint b { color: var(--ink); }
+
+  input[type=range] {
+    width: 100%; accent-color: var(--lima); cursor: pointer;
+    height: 4px; margin-top: 8px;
+  }
+
+  /* ── Filas de items ── */
+  .row-line { display: grid; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .row-line.gasto-row { grid-template-columns: 1fr 90px 130px 32px; }
+  .row-line.amort-row { grid-template-columns: 1fr 90px 90px 32px; }
+  .row-line.sop-row   { grid-template-columns: 1fr 110px 32px; }
+  .row-line.prod-row  { grid-template-columns: 1fr 100px 100px 32px; }
+  @media(max-width:600px){
+    .row-line.gasto-row { grid-template-columns: 1fr 75px 105px 28px; }
+    .row-line.amort-row { grid-template-columns: 1fr 75px 75px 28px; }
+    .row-line.sop-row   { grid-template-columns: 1fr 95px 28px; }
+    .row-line.prod-row  { grid-template-columns: 1fr 80px 80px 28px; }
+  }
+  /* ── Cabeceras de columna (mismos grid que row-line) ── */
+  .col-heads { display: grid; gap: 8px; margin-bottom: 4px; }
+  .col-heads.gasto-row { grid-template-columns: 1fr 90px 130px 32px; }
+  .col-heads.amort-row { grid-template-columns: 1fr 90px 90px 32px; }
+  .col-heads.sop-row   { grid-template-columns: 1fr 110px 32px; }
+  .col-heads.prod-row  { grid-template-columns: 1fr 100px 100px 32px; }
+  @media(max-width:600px){
+    .col-heads.gasto-row { grid-template-columns: 1fr 75px 105px 28px; }
+    .col-heads.amort-row { grid-template-columns: 1fr 75px 75px 28px; }
+    .col-heads.sop-row   { grid-template-columns: 1fr 95px 28px; }
+    .col-heads.prod-row  { grid-template-columns: 1fr 80px 80px 28px; }
+  }
+  .col-head {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em; padding: 0 2px;
+  }
+  .col-head.last { visibility: hidden; }
+
+  .btn-del {
+    border: none; background: none; color: var(--muted);
+    cursor: pointer; padding: 6px; border-radius: 8px; font-size: 15px; line-height: 1;
+  }
+  .btn-del:hover { color: var(--naranja); background: var(--naranja-soft); }
+
+  .btn-add {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1.5px dashed var(--line); background: none; color: var(--soft);
+    font-family: var(--f-body); font-size: 13px; font-weight: 500;
+    padding: 9px 14px; border-radius: 10px; cursor: pointer; margin-top: 4px;
+    transition: border-color .15s, color .15s;
+  }
+  .btn-add:hover { border-color: var(--lima); color: var(--ink); }
+
+  .toggle {
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
+    color: var(--soft); cursor: pointer; margin-top: 10px; user-select: none;
+  }
+  .toggle input { accent-color: var(--lima); width: 16px; height: 16px; cursor: pointer; }
+
+  /* ── Fold equipo ── */
+  .fold {
+    border: 1.5px solid var(--line); border-radius: 20px;
+    background: var(--card); overflow: hidden; margin-bottom: 18px;
+  }
+  .fold-head {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    background: none; border: none; cursor: pointer;
+    padding: clamp(18px,3vw,24px); font-family: var(--f-body);
+    text-align: left; color: var(--ink);
+  }
+  .fold-head h2 {
+    font-family: var(--f-display);
+    font-size: 18px; font-weight: 700; letter-spacing: -.01em;
+  }
+  .fold-head small { font-size: 12.5px; color: var(--muted); display: block; }
+  .fold-head .chev {
+    margin-left: auto; color: var(--muted); font-size: 18px;
+    transition: transform .2s; flex: none;
+  }
+  .fold-head .chev.open { transform: rotate(180deg); }
+  .fold-body { padding: 0 clamp(18px,3vw,24px) clamp(18px,3vw,24px); }
+
+  .subhead {
+    font-family: var(--f-mono); text-transform: uppercase;
+    letter-spacing: .12em; font-size: 11px; color: var(--equipo); margin: 22px 0 4px;
+  }
+  .subhead.first { margin-top: 4px; }
+  .subnote { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+  .subnote b { color: var(--soft); }
+
+  /* ── Panel resultado ── */
+  .result {
+    background: var(--ink); color: #fff;
+    border-radius: 22px; padding: clamp(22px,3vw,32px);
+  }
+  @media(min-width:900px){ .result { position: sticky; top: 24px; } }
+
+  .result .tag {
+    font-family: var(--f-mono); text-transform: uppercase;
+    letter-spacing: .2em; font-size: 10.5px; color: #aaa890; margin-bottom: 6px;
+  }
+  .big {
+    font-family: var(--f-display);
+    font-size: clamp(50px,10vw,78px); font-weight: 800;
+    letter-spacing: -.03em; line-height: .9;
+    color: var(--lima);
+  }
+  .big small { font-size: .34em; font-weight: 600; color: #aaa890; }
+
+  .say {
+    color: #c8c8b8; font-size: 13.5px; line-height: 1.5;
+    margin: 14px 0 24px; max-width: 34ch;
+  }
+  .say b { color: #fff; }
+
+  .bar {
+    display: flex; height: 10px; border-radius: 5px;
+    overflow: hidden; background: #2e2e26;
+  }
+  .bar i { display: block; height: 100%; transition: width .35s ease; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin: 12px 0 22px; font-size: 12px; color: #c8c8b8;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; display: inline-block; }
+
+  .facts { border-top: 1px solid #2e2e26; padding-top: 16px; display: grid; gap: 10px; }
+  .fact { display: flex; justify-content: space-between; font-size: 13px; }
+  .fact span { color: #888878; }
+  .fact b { font-family: var(--f-mono); font-weight: 700; color: #fff; }
+
+  /* ── Email ── */
+  .email-box {
+    margin-top: 24px; background: #222218;
+    border-radius: 14px; padding: 18px;
+  }
+  .email-box p { margin-bottom: 12px; font-size: 13px; color: #d8d8c8; }
+  .email-row { display: flex; gap: 8px; }
+  .email-row input {
+    flex: 1; border: 1.5px solid #3a3a30; background: #1a1a14;
+    color: #fff; border-radius: 10px; padding: 10px 12px;
+    font-size: 13px; font-family: var(--f-body);
+  }
+  .email-row input:focus { outline: none; border-color: var(--lima); }
+  .btn-cta {
+    background: var(--naranja); color: #fff; border: none; border-radius: 10px;
+    padding: 10px 18px; font-family: var(--f-body); font-weight: 700; font-size: 13px;
+    cursor: pointer; white-space: nowrap; transition: filter .15s;
+  }
+  .btn-cta:hover { filter: brightness(1.1); }
+  .ok-msg { font-family: var(--f-mono); font-size: 12.5px; color: var(--lima); }
+  .note {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 11.5px; color: #666658; margin-top: 14px; line-height: 1.4;
+  }
+
+  .foot {
+    font-family: var(--f-mono); font-size: 11px; color: var(--muted);
+    text-align: center; margin-top: 38px; letter-spacing: .04em;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+const PERIODS = [
+  { label: "Al mes",          mult: 12 },
+  { label: "Cada trimestre",  mult: 4  },
+  { label: "Cada semestre",   mult: 2  },
+  { label: "Una vez al año",  mult: 1  },
+];
+
+const fmt  = (n, dec=2) => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:dec}).format(isFinite(n)?n:0);
+const eur  = n => fmt(n,2);
+const eur0 = n => fmt(n,0);
+
+let _id = 0;
+const uid = () => ++_id;
+
+function App() {
+  const [sueldo,      setSueldo]      = useState(1500);
+  const [horasDia,    setHorasDia]    = useState(8);
+  const [diasSemana,  setDiasSemana]  = useState(5);
+  const [festivos,    setFestivos]    = useState(14);
+  const [imprevistos, setImprevistos] = useState(4);
+  const [vacaciones,  setVacaciones]  = useState(23);
+  const [pct,         setPct]         = useState(70);
+  const [margen,      setMargen]      = useState(true);
+
+  const [gastos, setGastos] = useState([
+    { id:uid(), concepto:"Cuota de autónomos", importe:80,  mult:12 },
+    { id:uid(), concepto:"Gestoría",           importe:60,  mult:12 },
+    { id:uid(), concepto:"Dominio y hosting",  importe:150, mult:1  },
+  ]);
+  const [amort,      setAmort]      = useState([{ id:uid(), concepto:"Equipo informático", importe:1500, anios:4 }]);
+  const [soporte,    setSoporte]    = useState([]);
+  const [productivo, setProductivo] = useState([]);
+  const [equipoOpen, setEquipoOpen] = useState(false);
+  const [email,      setEmail]      = useState("");
+  const [enviado,    setEnviado]    = useState(false);
+
+  const r = useMemo(() => {
+    const dias  = 365 - 52*(7-diasSemana) - festivos - imprevistos - vacaciones;
+    const hMes  = Math.max(0, (dias * horasDia) / 12);
+    const gAnual = gastos.reduce((s,g) => s+(Number(g.importe)||0)*g.mult, 0);
+    const gMes  = gAnual * (margen ? 1.1 : 1) / 12;
+    const aMes  = amort.reduce((s,a) => s+(Number(a.importe)||0)/(Number(a.anios)||1), 0) / 12;
+    const sMes  = soporte.reduce((s,p)    => s+(Number(p.coste)||0), 0);
+    const pMes  = productivo.reduce((s,p) => s+(Number(p.coste)||0), 0);
+    const hProd = productivo.reduce((s,p) => s+(Number(p.horas)||0), 0);
+    const hTuyas = hMes * (pct/100);
+    const hFact  = hTuyas + hProd;
+    const num    = (Number(sueldo)||0) + gMes + aMes + sMes + pMes;
+    const ch     = (hFact > 0 && num > 0) ? num/hFact : 0;
+    return { dias, hMes, gMes, aMes, sMes, pMes, hProd, hTuyas, hFact, num, ch, ok: hFact>0 && num>0 };
+  }, [sueldo,horasDia,diasSemana,festivos,imprevistos,vacaciones,pct,margen,gastos,amort,soporte,productivo]);
+
+  const comp = useMemo(() => {
+    const t = r.num || 1;
+    return {
+      s: (Number(sueldo)||0)/t*100,
+      g: r.gMes/t*100,
+      a: r.aMes/t*100,
+      e: (r.sMes+r.pMes)/t*100,
+    };
+  }, [r, sueldo]);
+
+  const setG = (id,k,v) => setGastos(xs  => xs.map(x => x.id===id ? {...x,[k]:v} : x));
+  const setA = (id,k,v) => setAmort(xs   => xs.map(x => x.id===id ? {...x,[k]:v} : x));
+  const setS = (id,k,v) => setSoporte(xs => xs.map(x => x.id===id ? {...x,[k]:v} : x));
+  const setP = (id,k,v) => setProductivo(xs => xs.map(x => x.id===id ? {...x,[k]:v} : x));
+
+  const num = (val, set, opts={}) => (
+    <input type="number" min={opts.min??0} step={opts.step??1} value={val}
+      onChange={e => set(Number(e.target.value)||0)} />
+  );
+
+  const handleEmail = () => { if(email.includes("@")) setEnviado(true); };
+
+  return (
+    <div className="wrap">
+      <p className="eyebrow">Maldito Margen · Calculadora gratuita</p>
+      <h1>¿Sabes cuánto te cuesta <em>una hora</em> de tu trabajo?</h1>
+      <p className="lede">Si no lo sabes, estás poniendo precios a ciegas. Rellena tus datos y descubre tu coste por hora real: el suelo por debajo del cual cada servicio que vendes te hace perder dinero.</p>
+
+      <div className="grid">
+
+        {/* ── COLUMNA IZQUIERDA ── */}
+        <div>
+
+          {/* SUELDO */}
+          <div className="card">
+            <div className="sec-head">
+              <div className="ic">💰</div>
+              <div><h2>Tu sueldo</h2><small>Lo que quieres cobrarte al mes</small></div>
+            </div>
+            <div className="field">
+              <label>Sueldo objetivo <small>(neto, al mes)</small></label>
+              {num(sueldo, setSueldo, {step:50})}
+            </div>
+          </div>
+
+          {/* TIEMPO */}
+          <div className="card">
+            <div className="sec-head">
+              <div className="ic g">🕐</div>
+              <div><h2>Tu tiempo</h2><small>Cuántas horas trabajas de verdad</small></div>
+            </div>
+            <div className="row2">
+              <div className="field"><label>Horas al día</label>{num(horasDia, setHorasDia, {step:.5})}</div>
+              <div className="field"><label>Días por semana</label>{num(diasSemana, setDiasSemana)}</div>
+            </div>
+            <div className="row3">
+              <div className="field"><label>Festivos</label>{num(festivos, setFestivos)}</div>
+              <div className="field"><label>Imprevistos</label>{num(imprevistos, setImprevistos)}</div>
+              <div className="field"><label>Vacaciones <small>(días)</small></label>{num(vacaciones, setVacaciones)}</div>
+            </div>
+            <p className="hint">Trabajas <b>{Math.max(0,Math.round(r.dias))}</b> días al año · <b>{Math.max(0,r.hMes).toFixed(0)} h</b> al mes</p>
+
+            <div className="field" style={{marginTop:18}}>
+              <label>% horas facturables <small>(las que de verdad cobras a clientes)</small></label>
+              <input type="range" min="10" max="100" step="5" value={pct}
+                onChange={e=>setPct(Number(e.target.value))} />
+              <p className="hint"><b>{pct}%</b> facturable · el resto se va en admin, redes, formación… (recomendado: 70%)</p>
+            </div>
+          </div>
+
+          {/* GASTOS */}
+          <div className="card">
+            <div className="sec-head">
+              <div className="ic g">🧾</div>
+              <div><h2>Gastos fijos del negocio</h2><small>Solo lo que pagas por tener el negocio</small></div>
+            </div>
+            <div className="col-heads gasto-row">
+              <span className="col-head">Concepto</span>
+              <span className="col-head">Importe sin IVA</span>
+              <span className="col-head">Periodicidad</span>
+              <span className="col-head last">—</span>
+            </div>
+            {gastos.map(g=>(
+              <div className="row-line gasto-row" key={g.id}>
+                <input type="text" value={g.concepto} placeholder="Concepto"
+                  onChange={e=>setG(g.id,"concepto",e.target.value)} />
+                <input type="number" min="0" value={g.importe}
+                  onChange={e=>setG(g.id,"importe",Number(e.target.value)||0)} />
+                <select value={g.mult} onChange={e=>setG(g.id,"mult",Number(e.target.value))}>
+                  {PERIODS.map(p=><option key={p.mult} value={p.mult}>{p.label}</option>)}
+                </select>
+                <button className="btn-del" onClick={()=>setGastos(xs=>xs.filter(x=>x.id!==g.id))}>✕</button>
+              </div>
+            ))}
+            <button className="btn-add" onClick={()=>setGastos(xs=>[...xs,{id:uid(),concepto:"",importe:0,mult:12}])}>
+              + Añadir gasto
+            </button>
+            <label className="toggle">
+              <input type="checkbox" checked={margen} onChange={e=>setMargen(e.target.checked)} />
+              Añadir un 10% de margen de maniobra (imprevistos del negocio)
+            </label>
+          </div>
+
+          {/* AMORTIZACIONES */}
+          <div className="card">
+            <div className="sec-head">
+              <div className="ic a">📈</div>
+              <div><h2>Inversiones a amortizar</h2><small>Compras grandes que duran años</small></div>
+            </div>
+            <div className="col-heads amort-row">
+              <span className="col-head">Concepto</span>
+              <span className="col-head">Importe total sin IVA</span>
+              <span className="col-head">Años de uso</span>
+              <span className="col-head last">—</span>
+            </div>
+            {amort.map(a=>(
+              <div className="row-line amort-row" key={a.id}>
+                <input type="text" value={a.concepto} placeholder="Ej. Ordenador"
+                  onChange={e=>setA(a.id,"concepto",e.target.value)} />
+                <input type="number" min="0" value={a.importe} placeholder="€ total"
+                  onChange={e=>setA(a.id,"importe",Number(e.target.value)||0)} />
+                <input type="number" min="1" value={a.anios} placeholder="años"
+                  onChange={e=>setA(a.id,"anios",Number(e.target.value)||1)} />
+                <button className="btn-del" onClick={()=>setAmort(xs=>xs.filter(x=>x.id!==a.id))}>✕</button>
+              </div>
+            ))}
+            <button className="btn-add" onClick={()=>setAmort(xs=>[...xs,{id:uid(),concepto:"",importe:0,anios:3}])}>
+              + Añadir inversión
+            </button>
+          </div>
+
+          {/* EQUIPO */}
+          <div className="fold">
+            <button className="fold-head" onClick={()=>setEquipoOpen(v=>!v)}>
+              <div className="ic e" style={{width:36,height:36,borderRadius:10,background:"var(--equipo-soft)",color:"var(--equipo)",display:"grid",placeItems:"center",flexShrink:0,fontSize:18}}>👥</div>
+              <div><h2>¿Trabajas con alguien más?</h2><small>Opcional · solo si tienes equipo</small></div>
+              <span className={"chev"+(equipoOpen?" open":"")}>▾</span>
+            </button>
+            {equipoOpen && (
+              <div className="fold-body">
+                <p className="subhead first">Soporte</p>
+                <p className="subnote">Quien sostiene el negocio pero no factura horas (admin, asistente…). Pon su <b>coste total empresa</b> al mes: bruto + Seguridad Social (~+30%). Su coste sube el número.</p>
+                <div className="col-heads sop-row">
+                  <span className="col-head">Nombre / rol</span>
+                  <span className="col-head">Coste total empresa/mes</span>
+                  <span className="col-head last">—</span>
+                </div>
+                {soporte.map(p=>(
+                  <div className="row-line sop-row" key={p.id}>
+                    <input type="text" value={p.concepto} placeholder="Ej. Administrativa"
+                      onChange={e=>setS(p.id,"concepto",e.target.value)} />
+                    <input type="number" min="0" value={p.coste} placeholder="€/mes"
+                      onChange={e=>setS(p.id,"coste",Number(e.target.value)||0)} />
+                    <button className="btn-del" onClick={()=>setSoporte(xs=>xs.filter(x=>x.id!==p.id))}>✕</button>
+                  </div>
+                ))}
+                <button className="btn-add" onClick={()=>setSoporte(xs=>[...xs,{id:uid(),concepto:"",coste:0}])}>
+                  + Añadir soporte
+                </button>
+
+                <p className="subhead">Productivo · factura horas</p>
+                <p className="subnote">Entrega trabajo vendible. Suma su <b>coste empresa</b> al mes <b>y</b> sus <b>horas facturables al mes</b>: tu coste/hora baja… si llenáis esas horas.</p>
+                <div className="col-heads prod-row">
+                  <span className="col-head">Nombre / rol</span>
+                  <span className="col-head">Coste empresa/mes</span>
+                  <span className="col-head">Horas facturables/mes</span>
+                  <span className="col-head last">—</span>
+                </div>
+                {productivo.map(p=>(
+                  <div className="row-line prod-row" key={p.id}>
+                    <input type="text" value={p.concepto} placeholder="Ej. Diseñadora"
+                      onChange={e=>setP(p.id,"concepto",e.target.value)} />
+                    <input type="number" min="0" value={p.coste} placeholder="€/mes"
+                      onChange={e=>setP(p.id,"coste",Number(e.target.value)||0)} />
+                    <input type="number" min="0" value={p.horas} placeholder="h/mes"
+                      onChange={e=>setP(p.id,"horas",Number(e.target.value)||0)} />
+                    <button className="btn-del" onClick={()=>setProductivo(xs=>xs.filter(x=>x.id!==p.id))}>✕</button>
+                  </div>
+                ))}
+                <button className="btn-add" onClick={()=>setProductivo(xs=>[...xs,{id:uid(),concepto:"",coste:0,horas:0}])}>
+                  + Añadir productivo
+                </button>
+              </div>
+            )}
+          </div>
+
+        </div>{/* fin izquierda */}
+
+        {/* ── COLUMNA DERECHA: RESULTADO ── */}
+        <div>
+          <div className="result">
+            <p className="tag">Tu coste por hora</p>
+            <p className="big">{r.ok ? eur(r.ch) : "—"}<small> /hora</small></p>
+            <p className="say">No es tu precio. Es tu <b>coste</b>: por debajo de aquí, trabajas para perder dinero.</p>
+
+            <div className="bar">
+              <i style={{width:comp.s+"%", background:"#c5d147"}}></i>
+              <i style={{width:comp.g+"%", background:"#9275a8"}}></i>
+              <i style={{width:comp.a+"%", background:"#dfdf57"}}></i>
+              <i style={{width:comp.e+"%", background:"#2E9E8F"}}></i>
+            </div>
+            <div className="legend">
+              <span><i className="dot" style={{background:"#c5d147"}}></i> Sueldo {comp.s.toFixed(0)}%</span>
+              <span><i className="dot" style={{background:"#9275a8"}}></i> Gastos {comp.g.toFixed(0)}%</span>
+              <span><i className="dot" style={{background:"#dfdf57"}}></i> Amort. {comp.a.toFixed(0)}%</span>
+              {comp.e>0.5 && <span><i className="dot" style={{background:"#2E9E8F"}}></i> Equipo {comp.e.toFixed(0)}%</span>}
+            </div>
+
+            <div className="facts">
+              <div className="fact"><span>Necesitas cubrir al mes</span><b>{eur0(r.num)}</b></div>
+              <div className="fact"><span>Horas facturables / mes</span><b>{r.hFact.toFixed(0)} h</b></div>
+              {r.hProd>0 && <div className="fact"><span>· de las cuales tuyas</span><b>{r.hTuyas.toFixed(0)} h</b></div>}
+              <div className="fact"><span>Gastos del negocio / mes</span><b>{eur0(r.gMes)}</b></div>
+              {(r.sMes+r.pMes)>0 && <div className="fact"><span>Equipo / mes</span><b>{eur0(r.sMes+r.pMes)}</b></div>}
+              <div className="fact"><span>Amortización / mes</span><b>{eur0(r.aMes)}</b></div>
+            </div>
+
+            <div className="email-box">
+              {!enviado ? (
+                <>
+                  <p>Recibe el resumen de tu coste por hora en tu correo.</p>
+                  <div className="email-row">
+                    <input type="email" placeholder="tu@email.com" value={email}
+                      onChange={e=>setEmail(e.target.value)}
+                      onKeyDown={e=>e.key==="Enter"&&handleEmail()} />
+                    <button className="btn-cta" onClick={handleEmail}>Enviar →</button>
+                  </div>
+                </>
+              ) : (
+                <p className="ok-msg">✓ ¡Hecho! En la versión publicada el informe llegaría a {email}.</p>
+              )}
+              <div className="note">
+                <span>ℹ</span>
+                <span>El cálculo es real. El envío de email se conecta en la versión definitiva.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>{/* fin grid */}
+      <p className="foot">Maldito Margen · Finanzas para negocios que quieren vivir de lo suyo · marolmedo.com</p>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
