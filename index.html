@@ -257,30 +257,18 @@
   .fact span { color: #888878; }
   .fact b { font-family: var(--f-mono); font-weight: 700; color: #fff; }
 
-  /* ── Email ── */
-  .email-box {
+  /* ── Bloque PDF ── */
+  .pdf-box {
     margin-top: 24px; background: #222218;
     border-radius: 14px; padding: 18px;
   }
-  .email-box p { margin-bottom: 12px; font-size: 13px; color: #d8d8c8; }
-  .email-row { display: flex; gap: 8px; }
-  .email-row input {
-    flex: 1; border: 1.5px solid #3a3a30; background: #1a1a14;
-    color: #fff; border-radius: 10px; padding: 10px 12px;
-    font-size: 13px; font-family: var(--f-body);
-  }
-  .email-row input:focus { outline: none; border-color: var(--lima); }
+  .pdf-box p { margin-bottom: 10px; font-size: 13px; color: #d8d8c8; }
   .btn-cta {
     background: var(--naranja); color: #fff; border: none; border-radius: 10px;
     padding: 10px 18px; font-family: var(--f-body); font-weight: 700; font-size: 13px;
     cursor: pointer; white-space: nowrap; transition: filter .15s;
   }
   .btn-cta:hover { filter: brightness(1.1); }
-  .ok-msg { font-family: var(--f-mono); font-size: 12.5px; color: var(--lima); }
-  .note {
-    display: flex; gap: 8px; align-items: flex-start;
-    font-size: 11.5px; color: #666658; margin-top: 14px; line-height: 1.4;
-  }
 
   .foot {
     font-family: var(--f-mono); font-size: 11px; color: var(--muted);
@@ -327,8 +315,6 @@ function App() {
   const [soporte,    setSoporte]    = useState([]);
   const [productivo, setProductivo] = useState([]);
   const [equipoOpen, setEquipoOpen] = useState(false);
-  const [email,      setEmail]      = useState("");
-  const [enviado,    setEnviado]    = useState(false);
 
   const r = useMemo(() => {
     const dias  = 365 - 52*(7-diasSemana) - festivos - imprevistos - vacaciones;
@@ -365,8 +351,6 @@ function App() {
     <input type="number" min={opts.min??0} step={opts.step??1} value={val}
       onChange={e => set(Number(e.target.value)||0)} />
   );
-
-  const handleEmail = () => { if(email.includes("@")) setEnviado(true); };
 
   return (
     <div className="wrap">
@@ -563,24 +547,17 @@ function App() {
               <div className="fact"><span>Amortización / mes</span><b>{eur0(r.aMes)}</b></div>
             </div>
 
-            <div className="email-box">
-              {!enviado ? (
+            <div className="pdf-box">
+              {r.ok ? (
                 <>
-                  <p>Recibe el resumen de tu coste por hora en tu correo.</p>
-                  <div className="email-row">
-                    <input type="email" placeholder="tu@email.com" value={email}
-                      onChange={e=>setEmail(e.target.value)}
-                      onKeyDown={e=>e.key==="Enter"&&handleEmail()} />
-                    <button className="btn-cta" onClick={handleEmail}>Enviar →</button>
-                  </div>
+                  <p>Tu informe está listo. Descárgalo para guardarlo o compartirlo.</p>
+                  <button className="btn-cta" style={{width:"100%",marginTop:4}} onClick={() => generarPDF(r, comp, eur, eur0)}>
+                    ↓ Descargar informe en PDF
+                  </button>
                 </>
               ) : (
-                <p className="ok-msg">✓ ¡Hecho! En la versión publicada el informe llegaría a {email}.</p>
+                <p style={{color:"#888878",fontSize:13}}>Rellena tus datos para generar el informe.</p>
               )}
-              <div className="note">
-                <span>ℹ</span>
-                <span>El cálculo es real. El envío de email se conecta en la versión definitiva.</span>
-              </div>
             </div>
           </div>
         </div>
@@ -589,6 +566,114 @@ function App() {
       <p className="foot">Maldito Margen · Finanzas para negocios que quieren vivir de lo suyo · marolmedo.com</p>
     </div>
   );
+}
+
+function generarPDF(r, comp, eur, eur0) {
+  const fecha = new Date().toLocaleDateString("es-ES", {day:"2-digit", month:"long", year:"numeric"});
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f9f9f6; color: #1a1a1a; padding: 40px; }
+    .header { background: #1a1a1a; border-radius: 16px; padding: 36px 40px; margin-bottom: 16px; }
+    .eyebrow { font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: .2em;
+      text-transform: uppercase; color: #888878; margin-bottom: 10px; }
+    .label { font-size: 13px; color: #c8c8b8; margin-bottom: 6px; }
+    .numero { font-size: 72px; font-weight: 800; letter-spacing: -.03em; color: #c5d147; line-height: 1; }
+    .numero small { font-size: 28px; font-weight: 600; color: #888878; }
+    .fecha { font-family: 'Courier New', monospace; font-size: 11px; color: #555548; margin-top: 14px; }
+    .bar-wrap { background: #1a1a1a; padding: 0 40px 24px; }
+    .bar-track { height: 8px; border-radius: 4px; background: #2e2e26; overflow: hidden; margin-bottom: 8px; display: flex; }
+    .legend { font-family: 'Courier New', monospace; font-size: 11px; color: #888878; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+    .desglose { background: #1a1a1a; border-radius: 0 0 16px 16px; padding: 0 40px 28px; margin-bottom: 16px; }
+    .row { display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid #2e2e26; font-size: 13px; }
+    .row span { color: #888878; }
+    .row b { font-family: 'Courier New', monospace; color: #fff; }
+    .card { background: #fff; border-radius: 16px; padding: 32px 36px; margin-bottom: 16px; }
+    .card h2 { font-size: 20px; font-weight: 800; margin-bottom: 12px; letter-spacing: -.02em; }
+    .card h2 em { font-style: normal; color: #e36c47; }
+    .card p { font-size: 14px; line-height: 1.65; color: #4a4a42; margin-bottom: 12px; }
+    .card p:last-child { margin-bottom: 0; }
+    .card strong { color: #1a1a1a; }
+    .tips { background: #f9f9f6; border: 1px solid #e8e8e2; border-radius: 16px; padding: 28px 36px; margin-bottom: 16px; }
+    .tips h3 { font-family: 'Courier New', monospace; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .12em; color: #9275a8; margin-bottom: 20px; }
+    .tip { display: flex; gap: 14px; margin-bottom: 18px; }
+    .tip:last-child { margin-bottom: 0; }
+    .tip-num { flex: none; width: 26px; height: 26px; border-radius: 7px; background: #1a1a1a;
+      color: #c5d147; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700;
+      text-align: center; line-height: 26px; }
+    .tip-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .tip-text { font-size: 12.5px; color: #4a4a42; line-height: 1.55; }
+    .cta { background: #1a1a1a; border-radius: 16px; padding: 28px 36px; }
+    .cta p { font-size: 13.5px; color: #c8c8b8; line-height: 1.6; margin-bottom: 10px; }
+    .cta p strong { color: #fff; }
+    .footer { text-align: center; padding: 20px 0 0; font-family: 'Courier New', monospace;
+      font-size: 10px; color: #888880; letter-spacing: .06em; }
+  </style>
+  </head><body>
+  <div class="header">
+    <p class="eyebrow">Maldito Margen · Tu calculadora</p>
+    <p class="label">Tu coste por hora es</p>
+    <p class="numero">${eur(r.ch).replace(" €","")}<small> €/h</small></p>
+    <p class="fecha">Calculado el ${fecha}</p>
+  </div>
+  <div class="bar-wrap">
+    <div class="bar-track">
+      <div style="width:${comp.s}%;background:#c5d147;height:8px"></div>
+      <div style="width:${comp.g}%;background:#9275a8;height:8px"></div>
+      <div style="width:${comp.a}%;background:#dfdf57;height:8px"></div>
+      <div style="width:${comp.e}%;background:#2E9E8F;height:8px"></div>
+    </div>
+    <span class="legend">
+      <span class="dot" style="background:#c5d147"></span>Sueldo ${comp.s.toFixed(0)}%&nbsp;&nbsp;
+      <span class="dot" style="background:#9275a8"></span>Gastos ${comp.g.toFixed(0)}%&nbsp;&nbsp;
+      <span class="dot" style="background:#dfdf57"></span>Amort. ${comp.a.toFixed(0)}%
+      ${comp.e > 0.5 ? `&nbsp;&nbsp;<span class="dot" style="background:#2E9E8F"></span>Equipo ${comp.e.toFixed(0)}%` : ""}
+    </span>
+  </div>
+  <div class="desglose">
+    <div class="row"><span>Necesitas cubrir al mes</span><b>${eur0(r.num)}</b></div>
+    <div class="row"><span>Horas facturables / mes</span><b>${r.hFact.toFixed(0)} h</b></div>
+    ${r.hProd > 0 ? `<div class="row"><span>· de las cuales tuyas</span><b>${r.hTuyas.toFixed(0)} h</b></div>` : ""}
+    <div class="row"><span>Gastos del negocio / mes</span><b>${eur0(r.gMes)}</b></div>
+    ${(r.sMes+r.pMes) > 0 ? `<div class="row"><span>Equipo / mes</span><b>${eur0(r.sMes+r.pMes)}</b></div>` : ""}
+    <div class="row"><span>Amortización / mes</span><b>${eur0(r.aMes)}</b></div>
+  </div>
+  <div class="card">
+    <h2>¿Qué significa <em>este número</em>?</h2>
+    <p>Tu coste por hora es lo que te cuesta producir una hora de tu trabajo. No es lo que cobras: es el mínimo por debajo del cual, cada vez que vendes, pierdes dinero sin enterarte.</p>
+    <p>Piénsalo así: igual que una pastelera sabe lo que le cuesta producir una tarta antes de ponerle precio, tú ahora sabes lo que te cuesta producir una hora. Ese es el coste. El precio va por encima, e incluye tu beneficio, tus impuestos y el valor que aportas.</p>
+    <p>Si alguno de tus servicios actuales está por debajo de <strong>${eur(r.ch)}/h</strong>, ese servicio te está costando dinero. No es una opinión: es aritmética.</p>
+  </div>
+  <div class="tips">
+    <h3>Tres cosas que puedes hacer hoy</h3>
+    <div class="tip"><div class="tip-num">1</div><div>
+      <p class="tip-title">Revisa tus servicios actuales</p>
+      <p class="tip-text">Coge cada servicio que vendes y divídelo por las horas reales que te lleva. ¿Alguno está por debajo de ${eur(r.ch)}/h? Empieza por ahí: ese servicio te cuesta dinero cada vez que lo vendes.</p>
+    </div></div>
+    <div class="tip"><div class="tip-num">2</div><div>
+      <p class="tip-title">Pon una línea roja en tus propuestas</p>
+      <p class="tip-text">Ninguna propuesta nueva debería cruzar tu coste por hora hacia abajo. Si tienes que bajar de ahí para cerrar, algo falla en el precio o en el cliente.</p>
+    </div></div>
+    <div class="tip"><div class="tip-num">3</div><div>
+      <p class="tip-title">Recalcula cuando cambie algo grande</p>
+      <p class="tip-text">Si subes tu sueldo objetivo, cambias las vacaciones o incorporas a alguien al equipo, el número se mueve. Vuelve a la calculadora cada vez que algo importante cambie.</p>
+    </div></div>
+  </div>
+  <div class="cta">
+    <p>Ya sabes lo que te cuesta una hora. El siguiente paso es saber <strong>cuánto ganas con cada servicio que vendes</strong>: cuáles te son rentables de verdad y cuáles te están comiendo el margen sin que te enteres.</p>
+    <p>Esto lo puedes trabajar en el curso <strong>PRECIOS RENTABLES</strong>.</p>
+  </div>
+  <div class="footer"><p>Maldito Margen · malditomargen.com · ${fecha}</p></div>
+  </body></html>`;
+
+  const ventana = window.open("", "_blank");
+  ventana.document.write(html);
+  ventana.document.close();
+  ventana.focus();
+  setTimeout(() => { ventana.print(); }, 800);
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
