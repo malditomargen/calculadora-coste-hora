@@ -283,10 +283,12 @@
 const { useState, useMemo } = React;
 
 const PERIODS = [
-  { label: "Al mes",          mult: 12 },
-  { label: "Cada trimestre",  mult: 4  },
-  { label: "Cada semestre",   mult: 2  },
-  { label: "Una vez al año",  mult: 1  },
+  { label: "Al mes",            mult: 12   },
+  { label: "Cada dos meses",    mult: 6    },
+  { label: "Cada trimestre",    mult: 4    },
+  { label: "Cada cuatrimestre", mult: 3    },
+  { label: "Cada semestre",     mult: 2    },
+  { label: "Una vez al año",    mult: 1    },
 ];
 
 const fmt  = (n, dec=2) => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:dec}).format(isFinite(n)?n:0);
@@ -324,7 +326,7 @@ function App() {
     const aMes  = amort.reduce((s,a) => s+(Number(a.importe)||0)/(Number(a.anios)||1), 0) / 12;
     const sMes  = soporte.reduce((s,p)    => s+(Number(p.coste)||0), 0);
     const pMes  = productivo.reduce((s,p) => s+(Number(p.coste)||0), 0);
-    const hProd = productivo.reduce((s,p) => s+(Number(p.horas)||0), 0);
+    const hProd = productivo.reduce((s,p) => s+(Number(p.horas)||0)*4.3452, 0);
     const hTuyas = hMes * (pct/100);
     const hFact  = hTuyas + hProd;
     const num    = (Number(sueldo)||0) + gMes + aMes + sMes + pMes;
@@ -347,9 +349,21 @@ function App() {
   const setS = (id,k,v) => setSoporte(xs => xs.map(x => x.id===id ? {...x,[k]:v} : x));
   const setP = (id,k,v) => setProductivo(xs => xs.map(x => x.id===id ? {...x,[k]:v} : x));
 
+  // Input numérico sin ceros iniciales
   const num = (val, set, opts={}) => (
-    <input type="number" min={opts.min??0} step={opts.step??1} value={val}
-      onChange={e => set(Number(e.target.value)||0)} />
+    <input type="number"
+      min={opts.min ?? 0}
+      max={opts.max ?? undefined}
+      step={opts.step ?? 1}
+      value={val === 0 ? "" : val}
+      placeholder="0"
+      onChange={e => {
+        const v = e.target.value;
+        const n = v === "" ? 0 : Number(v);
+        const clamped = opts.max !== undefined ? Math.min(n, opts.max) : n;
+        set(Math.max(opts.min ?? 0, clamped));
+      }}
+    />
   );
 
   return (
@@ -382,13 +396,13 @@ function App() {
               <div><h2>Tu tiempo</h2><small>Cuántas horas trabajas de verdad</small></div>
             </div>
             <div className="row2">
-              <div className="field"><label>Horas al día</label>{num(horasDia, setHorasDia, {step:.5})}</div>
-              <div className="field"><label>Días por semana</label>{num(diasSemana, setDiasSemana)}</div>
+              <div className="field"><label>Horas al día</label>{num(horasDia, setHorasDia, {step:.5, max:24})}</div>
+              <div className="field"><label>Días por semana</label>{num(diasSemana, setDiasSemana, {max:7})}</div>
             </div>
             <div className="row3">
               <div className="field"><label>Festivos</label>{num(festivos, setFestivos)}</div>
               <div className="field"><label>Imprevistos</label>{num(imprevistos, setImprevistos)}</div>
-              <div className="field"><label>Vacaciones <small>(días)</small></label>{num(vacaciones, setVacaciones)}</div>
+              <div className="field"><label>Vacaciones <small>(días laborables)</small></label>{num(vacaciones, setVacaciones)}</div>
             </div>
             <p className="hint">Trabajas <b>{Math.max(0,Math.round(r.dias))}</b> días al año · <b>{Math.max(0,r.hMes).toFixed(0)} h</b> al mes</p>
 
@@ -416,8 +430,9 @@ function App() {
               <div className="row-line gasto-row" key={g.id}>
                 <input type="text" value={g.concepto} placeholder="Concepto"
                   onChange={e=>setG(g.id,"concepto",e.target.value)} />
-                <input type="number" min="0" value={g.importe}
-                  onChange={e=>setG(g.id,"importe",Number(e.target.value)||0)} />
+                <input type="number" min="0"
+                  value={g.importe === 0 ? "" : g.importe} placeholder="0"
+                  onChange={e=>setG(g.id,"importe", e.target.value===""?0:Math.max(0,Number(e.target.value)))} />
                 <select value={g.mult} onChange={e=>setG(g.id,"mult",Number(e.target.value))}>
                   {PERIODS.map(p=><option key={p.mult} value={p.mult}>{p.label}</option>)}
                 </select>
@@ -449,10 +464,12 @@ function App() {
               <div className="row-line amort-row" key={a.id}>
                 <input type="text" value={a.concepto} placeholder="Ej. Ordenador"
                   onChange={e=>setA(a.id,"concepto",e.target.value)} />
-                <input type="number" min="0" value={a.importe} placeholder="€ total"
-                  onChange={e=>setA(a.id,"importe",Number(e.target.value)||0)} />
-                <input type="number" min="1" value={a.anios} placeholder="años"
-                  onChange={e=>setA(a.id,"anios",Number(e.target.value)||1)} />
+                <input type="number" min="0"
+                  value={a.importe === 0 ? "" : a.importe} placeholder="0"
+                  onChange={e=>setA(a.id,"importe", e.target.value===""?0:Math.max(0,Number(e.target.value)))} />
+                <input type="number" min="1"
+                  value={a.anios === 0 ? "" : a.anios} placeholder="años"
+                  onChange={e=>setA(a.id,"anios", e.target.value===""?1:Math.max(1,Number(e.target.value)))} />
                 <button className="btn-del" onClick={()=>setAmort(xs=>xs.filter(x=>x.id!==a.id))}>✕</button>
               </div>
             ))}
@@ -481,8 +498,9 @@ function App() {
                   <div className="row-line sop-row" key={p.id}>
                     <input type="text" value={p.concepto} placeholder="Ej. Administrativa"
                       onChange={e=>setS(p.id,"concepto",e.target.value)} />
-                    <input type="number" min="0" value={p.coste} placeholder="€/mes"
-                      onChange={e=>setS(p.id,"coste",Number(e.target.value)||0)} />
+                    <input type="number" min="0"
+                      value={p.coste === 0 ? "" : p.coste} placeholder="0"
+                      onChange={e=>setS(p.id,"coste", e.target.value===""?0:Math.max(0,Number(e.target.value)))} />
                     <button className="btn-del" onClick={()=>setSoporte(xs=>xs.filter(x=>x.id!==p.id))}>✕</button>
                   </div>
                 ))}
@@ -495,17 +513,19 @@ function App() {
                 <div className="col-heads prod-row">
                   <span className="col-head">Nombre / rol</span>
                   <span className="col-head">Coste empresa/mes</span>
-                  <span className="col-head">Horas facturables/mes</span>
+                  <span className="col-head">Horas facturables/semana</span>
                   <span className="col-head last">—</span>
                 </div>
                 {productivo.map(p=>(
                   <div className="row-line prod-row" key={p.id}>
                     <input type="text" value={p.concepto} placeholder="Ej. Diseñadora"
                       onChange={e=>setP(p.id,"concepto",e.target.value)} />
-                    <input type="number" min="0" value={p.coste} placeholder="€/mes"
-                      onChange={e=>setP(p.id,"coste",Number(e.target.value)||0)} />
-                    <input type="number" min="0" value={p.horas} placeholder="h/mes"
-                      onChange={e=>setP(p.id,"horas",Number(e.target.value)||0)} />
+                    <input type="number" min="0"
+                      value={p.coste === 0 ? "" : p.coste} placeholder="0"
+                      onChange={e=>setP(p.id,"coste", e.target.value===""?0:Math.max(0,Number(e.target.value)))} />
+                    <input type="number" min="0" max="40"
+                      value={p.horas === 0 ? "" : p.horas} placeholder="h/semana"
+                      onChange={e=>setP(p.id,"horas", e.target.value===""?0:Math.max(0,Number(e.target.value)))} />
                     <button className="btn-del" onClick={()=>setProductivo(xs=>xs.filter(x=>x.id!==p.id))}>✕</button>
                   </div>
                 ))}
