@@ -368,7 +368,7 @@ function App() {
 
   return (
     <div className="wrap">
-      <p className="eyebrow">Maldito Margen · Calculadora gratuita</p>
+      <p className="eyebrow">Maldito Margen · Calculadora Coste por Hora</p>
       <h1>¿Sabes cuánto te cuesta <em>una hora</em> de tu trabajo?</h1>
       <p className="lede">Si no lo sabes, estás poniendo precios a ciegas. Rellena tus datos y descubre tu coste por hora real: el suelo por debajo del cual cada servicio que vendes te hace perder dinero.</p>
 
@@ -692,8 +692,27 @@ function generarPDF(r, comp, eur, eur0) {
   const ventana = window.open("", "_blank");
   ventana.document.write(html);
   ventana.document.close();
-  ventana.focus();
-  setTimeout(() => { ventana.print(); }, 800);
+
+  ventana.onload = function() {
+    const script = ventana.document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+    script.onload = function() {
+      const fecha = new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}).replace(/\//g,"-");
+      ventana.html2pdf()
+        .set({
+          margin: 0,
+          filename: `coste-por-hora-malditomargen-${fecha}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#f9f9f6" },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          pagebreak: { mode: ["avoid-all"] }
+        })
+        .from(ventana.document.body)
+        .save()
+        .then(() => setTimeout(() => ventana.close(), 1000));
+    };
+    ventana.document.head.appendChild(script);
+  };
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
